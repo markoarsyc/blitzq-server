@@ -34,6 +34,7 @@ io.on("connection", (socket) => {
   socket.on("waiting-game",()=>{
     console.log(`Number of waiting players in room ${gameRoomID}: ${++numberOfWaitingPlayers} `);
     socket.join(`room-${gameRoomID}`);
+    socket.isWaiting = true;
     if (numberOfWaitingPlayers == 2) {
       io.to(`room-${gameRoomID}`).emit("game-started");
       console.log(`Game started in room ${gameRoomID}`);
@@ -45,6 +46,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("Client disconnected");
     console.log("Number of connections: " + --numberOfConnections);
+    if (socket.isWaiting) {
+      numberOfWaitingPlayers--;
+    }
   });
 });
 
