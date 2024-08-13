@@ -14,22 +14,24 @@ const io = new Server(httpServer, {
 });
 
 let numberOfConnections = 0;
-// let numberOfWaitingPlayers = 0;
-// let gameRoomID = 1;
+let numberOfWaitingPlayers = 0;
+let gameRoomID = 1;
 
 io.on("connection", (socket) => {
   console.log("Client connected");
   console.log("Number of connections: " + ++numberOfConnections);
-  // socket.on("waiting-game",()=>{
-  //   console.log(`Number of waiting players in room ${gameRoomID}: ${++numberOfWaitingPlayers} `);
-  //   socket.join(`room-${gameRoomID}`);
-  //   if (numberOfWaitingPlayers == 2) {
-  //     io.to(`room-${gameRoomID}`).emit("game-started");
-  //     console.log(`Game started in room ${gameRoomID}`);
-  //     numberOfWaitingPlayers = 0;
-  //     gameRoomID++;
-  //   }
-  // })
+
+  //Start game
+  socket.on("waiting-game",()=>{
+    console.log(`Number of waiting players in room ${gameRoomID}: ${++numberOfWaitingPlayers} `);
+    socket.join(`room-${gameRoomID}`);
+    if (numberOfWaitingPlayers == 2) {
+      io.to(`room-${gameRoomID}`).emit("game-started");
+      console.log(`Game started in room ${gameRoomID}`);
+      numberOfWaitingPlayers = 0;
+      gameRoomID++;
+    }
+  })
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");
