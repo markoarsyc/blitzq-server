@@ -3,6 +3,12 @@ const { createServer } = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 
+//Database models imports
+const Player = require("./models/player.model.js");
+
+//Login and registration functions
+const registerPlayer = require('./register and login/registerPlayer.js');
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -20,6 +26,9 @@ let gameRoomID = 1;
 io.on("connection", (socket) => {
   console.log("Client connected");
   console.log("Number of connections: " + ++numberOfConnections);
+
+  //Register
+  registerPlayer(socket,Player);
 
   //Start game
   socket.on("waiting-game",()=>{
