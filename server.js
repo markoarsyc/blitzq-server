@@ -8,6 +8,7 @@ const Player = require("./models/player.model.js");
 
 //Login and registration functions
 const registerPlayer = require('./register and login/registerPlayer.js');
+const loginPlayer = require("./register and login/loginPlayer.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -30,11 +31,13 @@ io.on("connection", (socket) => {
   //Register
   registerPlayer(socket,Player);
 
+  //Login
+  loginPlayer(socket,Player);
+
   //Start game
   socket.on("waiting-game",()=>{
     console.log(`Number of waiting players in room ${gameRoomID}: ${++numberOfWaitingPlayers} `);
     socket.join(`room-${gameRoomID}`);
-    socket.isWaiting = true;
     if (numberOfWaitingPlayers == 2) {
       io.to(`room-${gameRoomID}`).emit("game-started");
       console.log(`Game started in room ${gameRoomID}`);
