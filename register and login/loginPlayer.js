@@ -7,6 +7,7 @@ const loginPlayer = (socket, Player) => {
       });
       if(player) {
         socket.emit("login-status",player);
+        socket.username = player.username;
         console.log("Player with username " + player.username + " is logged in");
       } else {
         socket.emit("login-status",null);
@@ -18,6 +19,7 @@ const loginPlayer = (socket, Player) => {
   });
 
   socket.on("logout",(userCredentials)=>{
+    socket.username = null;
     console.log("Player with username " + userCredentials.username + " is logged out");
   })
 

@@ -21,40 +21,57 @@ const io = new Server(httpServer, {
 });
 
 let numberOfConnections = 0;
-let numberOfWaitingPlayers = 0;
 let gameRoomID = 1;
+let playersInRoom = {};
 
 io.on("connection", (socket) => {
   console.log("Client connected");
-  console.log("Number of connections: " + ++numberOfConnections);
+  console.log("Number of connected clients: " + ++numberOfConnections);
+  
+  // Registracija
+  registerPlayer(socket, Player);
 
-  //Register
-  registerPlayer(socket,Player);
+  // Login
+  loginPlayer(socket, Player);
 
-  //Login
-  loginPlayer(socket,Player);
+  socket.on("waiting-game", () => {
+    if (!playersInRoom[gameRoomID]) {
+      playersInRoom[gameRoomID] = [];
+    }
+    
+    playersInRoom[gameRoomID].push(socket.username);
 
-  //Start game
-  socket.on("waiting-game",()=>{
-    console.log(`Number of waiting players in room ${gameRoomID}: ${++numberOfWaitingPlayers} `);
     socket.join(`room-${gameRoomID}`);
-    if (numberOfWaitingPlayers == 2) {
+
+    // Pošalji ime protivnika ako je već neko prisutan u sobi
+    const opponent = playersInRoom[gameRoomID].find(username => username !== socket.username);
+    if (opponent) {
+      socket.emit("opponent-username", opponent);
+    }
+
+    // Pošalji ime novom igraču u sobi
+    socket.to(`room-${gameRoomID}`).emit("opponent-username", socket.username);
+
+    if (playersInRoom[gameRoomID].length === 2) {
       io.to(`room-${gameRoomID}`).emit("game-started");
       console.log(`Game started in room ${gameRoomID}`);
-      numberOfWaitingPlayers = 0;
+      playersInRoom[gameRoomID] = [];
       gameRoomID++;
     }
-  })
+  });
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");
-    console.log("Number of connections: " + --numberOfConnections);
-    if (socket.isWaiting) {
-      numberOfWaitingPlayers--;
+    console.log("Number of connected clients: " + --numberOfConnections);
+
+    // Ukloni korisničko ime iz sobe
+    if (socket.username) {
+      playersInRoom[gameRoomID] = playersInRoom[gameRoomID]?.filter(username => username !== socket.username);
     }
   });
 });
 
+//Konekcija sa bazom i pokretanje servera
 mongoose
   .connect(
     "mongodb+srv://markokaca:mG3UwuthRwZkv87b@blitzq.jtbbf.mongodb.net/BlitzQ?retryWrites=true&w=majority&appName=BlitzQ"
