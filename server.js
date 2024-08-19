@@ -5,10 +5,14 @@ const mongoose = require("mongoose");
 
 //Database models imports
 const Player = require("./models/player.model.js");
+const Category = require("./models/category.model.js");
 
 //Login and registration functions
-const registerPlayer = require('./register and login/registerPlayer.js');
+const registerPlayer = require("./register and login/registerPlayer.js");
 const loginPlayer = require("./register and login/loginPlayer.js");
+
+//Categories and terms functions
+const addNewCategory = require("./categories and terms/addNewCategory.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -27,24 +31,29 @@ let playersInRoom = {};
 io.on("connection", (socket) => {
   console.log("Client connected");
   console.log("Number of connected clients: " + ++numberOfConnections);
-  
+
   // Registracija
   registerPlayer(socket, Player);
 
   // Login
   loginPlayer(socket, Player);
 
+  // Add new category
+  addNewCategory(socket, Category);
+
   socket.on("waiting-game", () => {
     if (!playersInRoom[gameRoomID]) {
       playersInRoom[gameRoomID] = [];
     }
-    
+
     playersInRoom[gameRoomID].push(socket.username);
 
     socket.join(`room-${gameRoomID}`);
 
     // Pošalji ime protivnika ako je već neko prisutan u sobi
-    const opponent = playersInRoom[gameRoomID].find(username => username !== socket.username);
+    const opponent = playersInRoom[gameRoomID].find(
+      (username) => username !== socket.username
+    );
     if (opponent) {
       socket.emit("opponent-username", opponent);
     }
@@ -66,7 +75,9 @@ io.on("connection", (socket) => {
 
     // Ukloni korisničko ime iz sobe
     if (socket.username) {
-      playersInRoom[gameRoomID] = playersInRoom[gameRoomID]?.filter(username => username !== socket.username);
+      playersInRoom[gameRoomID] = playersInRoom[gameRoomID]?.filter(
+        (username) => username !== socket.username
+      );
     }
   });
 });
