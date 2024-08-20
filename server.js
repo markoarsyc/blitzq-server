@@ -13,6 +13,7 @@ const loginPlayer = require("./register and login/loginPlayer.js");
 
 //Categories and terms functions
 const addNewCategory = require("./categories and terms/addNewCategory.js");
+const getCategories = require("./categories and terms/getCategories.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -68,6 +69,11 @@ io.on("connection", (socket) => {
       gameRoomID++;
     }
   });
+
+  socket.on("game-started",async ()=>{
+    const categories = await getCategories(socket,Category);
+    socket.emit("send-categories",categories);
+  }) 
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");
