@@ -66,14 +66,18 @@ io.on("connection", (socket) => {
       io.to(`room-${gameRoomID}`).emit("game-started");
       console.log(`Game started in room ${gameRoomID}`);
       playersInRoom[gameRoomID] = [];
-      gameRoomID++;
+      //gameRoomID++;
     }
   });
 
   socket.on("game-started",async ()=>{
     const categories = await getCategories(socket,Category);
-    socket.emit("send-categories",categories);
+    io.to(`room-${gameRoomID}`).emit("send-categories",categories);
   }) 
+
+  socket.on("game-over", (score)=>{
+    console.log(`Player ${score.player} has score: ${score.scores}`)
+  })
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");

@@ -22,7 +22,6 @@ const getCategories = async (socket,Category)=> {
         const categories = await Category.find({});
         if(categories) {
             let rand = getRandomElements(categories,3);
-            console.log("Random categories:", rand);
             return rand;
         } else {
             return [];
