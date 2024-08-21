@@ -5,7 +5,8 @@ const mongoose = require("mongoose");
 
 //Database models imports
 const Player = require("./models/player.model.js");
-const Category = require("./models/category.model.js");
+const { Category } = require("./models/category.model.js");
+const Game = require("./models/game.model.js");
 
 //Login and registration functions
 const registerPlayer = require("./register and login/registerPlayer.js");
@@ -14,6 +15,13 @@ const loginPlayer = require("./register and login/loginPlayer.js");
 //Categories and terms functions
 const addNewCategory = require("./categories and terms/addNewCategory.js");
 const getCategories = require("./categories and terms/getCategories.js");
+
+//Game functions
+const getWinner = require("./games/getWinner.js");
+const createGame = require("./games/createGame.js");
+const setGameWinner = require("./games/setGameWinner.js");
+const setGameScores = require("./games/setGameScores.js");
+const getGameById = require("./games/getGameByID.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,8 +34,11 @@ const io = new Server(httpServer, {
 });
 
 let numberOfConnections = 0;
-let gameRoomID = 1;
+let gameRoomID = 0;
 let playersInRoom = {};
+let scores = [];
+let currentGames = [];
+let pendingScores = [];
 
 io.on("connection", (socket) => {
   console.log("Client connected");
@@ -63,20 +74,59 @@ io.on("connection", (socket) => {
     socket.to(`room-${gameRoomID}`).emit("opponent-username", socket.username);
 
     if (playersInRoom[gameRoomID].length === 2) {
-      io.to(`room-${gameRoomID}`).emit("game-started");
+      io.to(`room-${gameRoomID}`).emit("start-game");
       console.log(`Game started in room ${gameRoomID}`);
       playersInRoom[gameRoomID] = [];
-      //gameRoomID++;
+    }
+  });
+  socket.on("game-started", async (player) => {
+    try {
+      playersInRoom[gameRoomID].push(player);
+
+      if (playersInRoom[gameRoomID].length === 2) {
+        const categories = await getCategories(socket, Category);
+        const game = await createGame(
+          socket,
+          Game,
+          playersInRoom[gameRoomID][0].username,
+          playersInRoom[gameRoomID][1].username,
+          categories
+        );
+        console.log(`Created game with id ${game._id}`);
+        currentGames.push(game._id);
+
+        io.to(`room-${gameRoomID}`).emit("game-started", game);
+        console.log("Sent categories to room:", gameRoomID);
+        playersInRoom[gameRoomID] = [];
+        // gameRoomID++;
+      }
+    } catch (error) {
+      console.error("Error in 'game-started' event:", error);
     }
   });
 
-  socket.on("game-started",async ()=>{
-    const categories = await getCategories(socket,Category);
-    io.to(`room-${gameRoomID}`).emit("send-categories",categories);
-  }) 
+  socket.on("game-over", (playerScore) => {
+    console.log(`Player ${playerScore.player} has score: ${playerScore.scores}`);
+    scores.push(playerScore);
+    if (scores.length === 2) {
+      const winner = getWinner(scores[0], scores[1]);
+      setGameScores(Game,currentGames[0],scores[0].scores,scores[1].scores);
+      setGameWinner(Game,currentGames[0],winner);
+      console.log(`The winner of game with id ${currentGames[0]} is ${winner}`);
+      // io.to(`room-${gameRoomID}`).emit("result", winner);
+      scores = []; // Resetujte scores nakon slanja rezultata
+    }
+  });
 
-  socket.on("game-over", (score)=>{
-    console.log(`Player ${score.player} has score: ${score.scores}`)
+  socket.on("score", async (player)=>{
+    pendingScores.push(player);
+    if(pendingScores.length === 2) {
+      const game = await getGameById(Game,currentGames[0]);
+      console.log(game);
+      io.to(`room-${gameRoomID}`).emit("score", game);
+      pendingScores = [];
+      currentGames = [];
+    }
   })
 
   socket.on("disconnect", () => {
