@@ -22,18 +22,6 @@ const PlayerSchema = mongoose.Schema(
         password: {
             type:String,
             required:true
-        },
-        games : {
-            type:Number,
-            default:0
-        },
-        win : {
-            type:Number,
-            default:0
-        },
-        defeat: {
-            type:Number,
-            default:0
         }
     },
     {

@@ -22,6 +22,7 @@ const createGame = require("./games/createGame.js");
 const setGameWinner = require("./games/setGameWinner.js");
 const setGameScores = require("./games/setGameScores.js");
 const getGameById = require("./games/getGameByID.js");
+const getAllGamesByUsername = require("./games/getAllGamesByUsername.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -50,7 +51,10 @@ io.on("connection", (socket) => {
   // Login
   loginPlayer(socket, Player);
 
-  // Add new category
+  //Posalji sve partije igracu
+  getAllGamesByUsername(socket,Game);
+
+  // Dodaj novu kategoriju
   addNewCategory(socket, Category);
 
   socket.on("waiting-game", () => {
