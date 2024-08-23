@@ -28,7 +28,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
     methods: ["GET", "POST"],
   },
   connectionStateRecovery: {},
@@ -101,7 +101,7 @@ io.on("connection", (socket) => {
 
         io.to(`room-${gameRoomID}`).emit("game-started", game);
         console.log("Sent categories to room:", gameRoomID);
-        playersInRoom[gameRoomID] = [];
+        // playersInRoom[gameRoomID] = [];
         // gameRoomID++;
       }
     } catch (error) {
@@ -111,14 +111,20 @@ io.on("connection", (socket) => {
 
   socket.on("game-over", (playerScore) => {
     console.log(`Player ${playerScore.player} has score: ${playerScore.scores}`);
-    scores.push(playerScore);
-    if (scores.length === 2) {
+    if(playerScore.player === playersInRoom[gameRoomID][0].username) {
+      scores[0] = playerScore;
+      console.log(`Player ${playerScore.player} is player 1`);
+    } else {
+      scores[1] = playerScore;
+      console.log(`Player ${playerScore.player} is player 2`);
+    }
+    if (scores.length === 2 && scores[0] && scores[1]) {
       const winner = getWinner(scores[0], scores[1]);
       setGameScores(Game,currentGames[0],scores[0].scores,scores[1].scores);
       setGameWinner(Game,currentGames[0],winner);
       console.log(`The winner of game with id ${currentGames[0]} is ${winner}`);
-      // io.to(`room-${gameRoomID}`).emit("result", winner);
       scores = []; // Resetujte scores nakon slanja rezultata
+      playersInRoom[gameRoomID] = [];
     }
   });
 
