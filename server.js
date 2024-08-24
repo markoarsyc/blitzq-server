@@ -90,17 +90,17 @@ io.on("connection", (socket) => {
     console.log(`Number of players in room ${gameRoomID}: ${playersInRoom[gameRoomID].length}`);
   })
 
-  socket.on("game-started", async (player) => {
+  socket.on("game-started", async () => {
     try {
-      playersInRoom[gameRoomID].push(player);
-
+      playersInRoom[gameRoomID].push(socket.username);
+      console.log(socket.username);
       if (playersInRoom[gameRoomID].length === 2) {
         const categories = await getCategories(socket, Category);
         const game = await createGame(
           socket,
           Game,
-          playersInRoom[gameRoomID][0].username,
-          playersInRoom[gameRoomID][1].username,
+          playersInRoom[gameRoomID][0],
+          playersInRoom[gameRoomID][1],
           categories
         );
         console.log(`Created game with id ${game._id}`);
@@ -118,7 +118,7 @@ io.on("connection", (socket) => {
 
   socket.on("game-over", (playerScore) => {
     console.log(`Player ${playerScore.player} has score: ${playerScore.scores}`);
-    if(playerScore.player === playersInRoom[gameRoomID][0].username) {
+    if(playerScore.player === playersInRoom[gameRoomID][0]) {
       scores[0] = playerScore;
       console.log(`Player ${playerScore.player} is player 1`);
     } else {
