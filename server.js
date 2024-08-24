@@ -63,6 +63,7 @@ io.on("connection", (socket) => {
     }
 
     playersInRoom[gameRoomID].push(socket.username);
+    console.log(`Number of players in room ${gameRoomID} is ${playersInRoom[gameRoomID].length}`);
 
     socket.join(`room-${gameRoomID}`);
 
@@ -83,6 +84,12 @@ io.on("connection", (socket) => {
       playersInRoom[gameRoomID] = [];
     }
   });
+
+  socket.on("left-game",()=>{
+    playersInRoom[gameRoomID].pop(socket.username);
+    console.log(`Number of players in room ${gameRoomID}: ${playersInRoom[gameRoomID].length}`);
+  })
+
   socket.on("game-started", async (player) => {
     try {
       playersInRoom[gameRoomID].push(player);
