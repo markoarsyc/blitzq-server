@@ -4,12 +4,19 @@ const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 
 //Database models imports
-const Player = require("./models/player.model.js");
 const { Category } = require("./models/category.model.js");
 
-//Login and registration functions
-const registerPlayer = require("./register and login/registerPlayer.js");
-const loginPlayer = require("./register and login/loginPlayer.js");
+//Controllers
+const {
+  createPlayer,
+  readPlayer,
+} = require("./controllers/player.controller.js");
+const {
+  createGame,
+  readGame,
+  readAllGames,
+  updateGame,
+} = require("./controllers/game.controller.js");
 
 //Categories and terms functions
 const addNewCategory = require("./categories and terms/addNewCategory.js");
@@ -17,12 +24,6 @@ const getCategories = require("./categories and terms/getCategories.js");
 
 //Game functions
 const getWinner = require("./games/getWinner.js");
-const {
-  createGame,
-  readGame,
-  readAllGames,
-  updateGame,
-} = require("./controllers/game.controller.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -46,17 +47,44 @@ io.on("connection", (socket) => {
   console.log("Number of connected clients: " + ++numberOfConnections);
 
   // Registracija
-  registerPlayer(socket, Player);
+  socket.on("register-player", async (playerCredentials) => {
+    const player = await createPlayer(playerCredentials);
+    if (player) {
+      console.log(
+        `New player with username ${player.username} added to database`
+      );
+      socket.emit("registration-status", true);
+    } else {
+      console.log("Unable to create player");
+      socket.emit("registration-status", false);
+    }
+  });
 
-  // Login
-  loginPlayer(socket, Player);
+  // Prijava
+  socket.on("login", async (playerCredentials) => {
+    const player = await readPlayer(playerCredentials);
+    if (player) {
+      socket.emit("login-status", player);
+      socket.username = player.username;
+      console.log("Player with username " + player.username + " is logged in");
+    } else {
+      socket.emit("login-status", null);
+      console.log("Player not found");
+    }
+  });
+
+  // Odjava
+  socket.on("logout", () => {
+    console.log("Player with username " + socket.username + " is logged out");
+    socket.username = null;
+  });
 
   //Posalji sve partije igracu
   socket.on("get-games-by-username", async () => {
     const games = await readAllGames({
       $or: [{ player1: socket.username }, { player2: socket.username }],
     });
-    if(games) {
+    if (games) {
       socket.emit("games-list-by-username", games);
     } else {
       console.error("Error fetching games:", error);
