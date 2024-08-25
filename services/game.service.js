@@ -1,3 +1,4 @@
+//odredjivanje pobednika na osnovu rezultata
 const getWinner = (player1, player2)=> {
     let p1Score = 0, p2Score = 0;
     for (let i = 0; i < 3; i++) {
@@ -17,5 +18,4 @@ const getWinner = (player1, player2)=> {
     }
 }
 
-
-module.exports = getWinner;
+module.exports = {getWinner}

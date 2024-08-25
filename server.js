@@ -16,11 +16,16 @@ const {
   updateGame,
 } = require("./controllers/game.controller.js");
 
-const { createCategory, readAllCategories } = require("./controllers/category.controller.js");
+const {
+  createCategory,
+  readAllCategories,
+} = require("./controllers/category.controller.js");
 
-//Additional functions
-const getWinner = require("./additional functions/getWinner.js");
-const getRandomElements = require("./additional functions/getRandomElements.js");
+//Services (poslovna logika)
+const {getWinner} = require("./services/game.service.js");
+
+//helpers
+const getRandomElements = require("./helpers/getRandomElements.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -147,7 +152,7 @@ io.on("connection", (socket) => {
       console.log(socket.username);
       if (playersInRoom[gameRoomID].length === 2) {
         const allCategories = await readAllCategories();
-        const categories = getRandomElements(allCategories,3);
+        const categories = getRandomElements(allCategories, 3);
         const game = await createGame({
           categories: categories,
           player1: playersInRoom[gameRoomID][0],
