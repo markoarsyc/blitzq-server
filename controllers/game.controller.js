@@ -29,9 +29,6 @@ const readGame = async (id)=> {
 //read all games
 const readAllGames = async (properties) => {
     try {
-        // const games = await Game.find({
-        //     $or: [{ player1: username }, { player2: username }]
-        // });
         const games = await Game.find(properties);
         return games;
     } catch (error) {

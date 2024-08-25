@@ -17,19 +17,4 @@ const getRandomElements = (arr, num) => {
     return arrayCopy.slice(0, num);
 }
 
-const getCategories = async (socket,Category)=> {
-    try {
-        const categories = await Category.find({});
-        if(categories) {
-            let rand = getRandomElements(categories,3);
-            return rand;
-        } else {
-            return [];
-        }
-    } catch (error) {
-        console.log(error);
-        return [];
-    }
-}
-
-module.exports = getCategories;
+module.exports = getRandomElements;

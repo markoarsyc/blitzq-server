@@ -3,14 +3,12 @@ const { createServer } = require("http");
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 
-//Database models imports
-const { Category } = require("./models/category.model.js");
-
 //Controllers
 const {
   createPlayer,
   readPlayer,
 } = require("./controllers/player.controller.js");
+
 const {
   createGame,
   readGame,
@@ -18,12 +16,11 @@ const {
   updateGame,
 } = require("./controllers/game.controller.js");
 
-//Categories and terms functions
-const addNewCategory = require("./categories and terms/addNewCategory.js");
-const getCategories = require("./categories and terms/getCategories.js");
+const { createCategory, readAllCategories } = require("./controllers/category.controller.js");
 
-//Game functions
-const getWinner = require("./games/getWinner.js");
+//Additional functions
+const getWinner = require("./additional functions/getWinner.js");
+const getRandomElements = require("./additional functions/getRandomElements.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -35,6 +32,7 @@ const io = new Server(httpServer, {
   connectionStateRecovery: {},
 });
 
+//Global variables
 let numberOfConnections = 0;
 let gameRoomID = 0;
 let playersInRoom = {};
@@ -93,7 +91,18 @@ io.on("connection", (socket) => {
   });
 
   // Dodaj novu kategoriju
-  addNewCategory(socket, Category);
+  socket.on("add-category", async (userCategory) => {
+    const category = await createCategory(userCategory);
+    if (category) {
+      console.log(
+        `Category "${category.title}" successfully added to database`
+      );
+      socket.emit("add-category-status", true);
+    } else {
+      console.log(`An error occured when user tried to add new category`);
+      socket.emit("add-category-status", false);
+    }
+  });
 
   socket.on("waiting-game", () => {
     if (!playersInRoom[gameRoomID]) {
@@ -137,7 +146,8 @@ io.on("connection", (socket) => {
       playersInRoom[gameRoomID].push(socket.username);
       console.log(socket.username);
       if (playersInRoom[gameRoomID].length === 2) {
-        const categories = await getCategories(socket, Category);
+        const allCategories = await readAllCategories();
+        const categories = getRandomElements(allCategories,3);
         const game = await createGame({
           categories: categories,
           player1: playersInRoom[gameRoomID][0],
