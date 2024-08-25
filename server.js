@@ -6,7 +6,6 @@ const mongoose = require("mongoose");
 //Database models imports
 const Player = require("./models/player.model.js");
 const { Category } = require("./models/category.model.js");
-const Game = require("./models/game.model.js");
 
 //Login and registration functions
 const registerPlayer = require("./register and login/registerPlayer.js");
@@ -18,11 +17,12 @@ const getCategories = require("./categories and terms/getCategories.js");
 
 //Game functions
 const getWinner = require("./games/getWinner.js");
-const createGame = require("./games/createGame.js");
-const setGameWinner = require("./games/setGameWinner.js");
-const setGameScores = require("./games/setGameScores.js");
-const getGameById = require("./games/getGameByID.js");
-const getAllGamesByUsername = require("./games/getAllGamesByUsername.js");
+const {
+  createGame,
+  readGame,
+  readAllGames,
+  updateGame,
+} = require("./controllers/game.controller.js");
 
 const app = express();
 const httpServer = createServer(app);
@@ -52,7 +52,17 @@ io.on("connection", (socket) => {
   loginPlayer(socket, Player);
 
   //Posalji sve partije igracu
-  getAllGamesByUsername(socket,Game);
+  socket.on("get-games-by-username", async () => {
+    const games = await readAllGames({
+      $or: [{ player1: socket.username }, { player2: socket.username }],
+    });
+    if(games) {
+      socket.emit("games-list-by-username", games);
+    } else {
+      console.error("Error fetching games:", error);
+      socket.emit("games-list-by-username", "Failed to retrieve games.");
+    }
+  });
 
   // Dodaj novu kategoriju
   addNewCategory(socket, Category);
@@ -63,7 +73,9 @@ io.on("connection", (socket) => {
     }
 
     playersInRoom[gameRoomID].push(socket.username);
-    console.log(`Number of players in room ${gameRoomID} is ${playersInRoom[gameRoomID].length}`);
+    console.log(
+      `Number of players in room ${gameRoomID} is ${playersInRoom[gameRoomID].length}`
+    );
 
     socket.join(`room-${gameRoomID}`);
 
@@ -85,10 +97,12 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("left-game",()=>{
+  socket.on("left-game", () => {
     playersInRoom[gameRoomID].pop(socket.username);
-    console.log(`Number of players in room ${gameRoomID}: ${playersInRoom[gameRoomID].length}`);
-  })
+    console.log(
+      `Number of players in room ${gameRoomID}: ${playersInRoom[gameRoomID].length}`
+    );
+  });
 
   socket.on("game-started", async () => {
     try {
@@ -96,13 +110,11 @@ io.on("connection", (socket) => {
       console.log(socket.username);
       if (playersInRoom[gameRoomID].length === 2) {
         const categories = await getCategories(socket, Category);
-        const game = await createGame(
-          socket,
-          Game,
-          playersInRoom[gameRoomID][0],
-          playersInRoom[gameRoomID][1],
-          categories
-        );
+        const game = await createGame({
+          categories: categories,
+          player1: playersInRoom[gameRoomID][0],
+          player2: playersInRoom[gameRoomID][1],
+        });
         console.log(`Created game with id ${game._id}`);
         currentGames.push(game._id);
 
@@ -117,8 +129,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("game-over", (playerScore) => {
-    console.log(`Player ${playerScore.player} has score: ${playerScore.scores}`);
-    if(playerScore.player === playersInRoom[gameRoomID][0]) {
+    console.log(
+      `Player ${playerScore.player} has score: ${playerScore.scores}`
+    );
+    if (playerScore.player === playersInRoom[gameRoomID][0]) {
       scores[0] = playerScore;
       console.log(`Player ${playerScore.player} is player 1`);
     } else {
@@ -126,25 +140,27 @@ io.on("connection", (socket) => {
       console.log(`Player ${playerScore.player} is player 2`);
     }
     if (scores.length === 2 && scores[0] && scores[1]) {
-      const winner = getWinner(scores[0], scores[1]);
-      setGameScores(Game,currentGames[0],scores[0].scores,scores[1].scores);
-      setGameWinner(Game,currentGames[0],winner);
-      console.log(`The winner of game with id ${currentGames[0]} is ${winner}`);
+      const gameWinner = getWinner(scores[0], scores[1]);
+      updateGame(currentGames[0], {
+        player1Score: scores[0].scores,
+        player2Score: scores[1].scores,
+        winner: gameWinner,
+      });
       scores = []; // Resetujte scores nakon slanja rezultata
       playersInRoom[gameRoomID] = [];
     }
   });
 
-  socket.on("score", async (player)=>{
+  socket.on("score", async (player) => {
     pendingScores.push(player);
-    if(pendingScores.length === 2) {
-      const game = await getGameById(Game,currentGames[0]);
+    if (pendingScores.length === 2) {
+      const game = await readGame(currentGames[0]);
       console.log(game);
       io.to(`room-${gameRoomID}`).emit("score", game);
       pendingScores = [];
       currentGames = [];
     }
-  })
+  });
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");
